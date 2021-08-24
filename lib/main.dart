@@ -1,7 +1,9 @@
 // @dart=2.9
-
+//Packages
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+//Pages
 import './pages/splash_page.dart';
 import './pages/main_page.dart';
 
@@ -22,7 +24,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Reflix',
+      title: 'Flickd',
       initialRoute: 'home',
       routes: {
         'home': (BuildContext _context) => MainPage(),

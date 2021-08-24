@@ -1,3 +1,5 @@
+
+//Packages
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
@@ -11,7 +13,7 @@ class MovieTile extends StatelessWidget {
   final double? width;
   final Movie? movie;
 
-  MovieTile({this.movie, this.width, this.height});
+  MovieTile({this.movie, this.height, this.width});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +47,7 @@ class MovieTile extends StatelessWidget {
               Container(
                 width: width! * 0.56,
                 child: Text(
-                  movie!.name,
+                  movie!.name!,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: Colors.white,
@@ -65,14 +67,14 @@ class MovieTile extends StatelessWidget {
           Container(
             padding: EdgeInsets.fromLTRB(0, height! * 0.02, 0, 0),
             child: Text(
-              '${movie!.language.toUpperCase()} | R: ${movie!.isAdult} | ${movie!.releaseDate}',
+              '${movie!.language!.toUpperCase()} | R: ${movie!.isAdult} | ${movie!.releaseDate}',
               style: TextStyle(color: Colors.white, fontSize: 12),
             ),
           ),
           Container(
             padding: EdgeInsets.fromLTRB(0, height! * 0.07, 0, 0),
             child: Text(
-              movie!.description,
+              movie!.description!,
               maxLines: 9,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(color: Colors.white70, fontSize: 10),

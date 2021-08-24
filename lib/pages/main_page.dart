@@ -2,16 +2,37 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import 'package:movie_tmdb/controllers/main_page_data_controller.dart';
+import 'package:movie_tmdb/models/main_page_data.dart';
 
 //widget
 import '../widgets/movie_tile.dart';
 
+//models
 import '../models/search_category.dart';
 import '../models/movie.dart';
+
+//controllers
+import '../controllers/main_page_data_controller.dart';
+
+final mainPageDataControllerProvider =
+    StateNotifierProvider<MainPageDataController>((ref) {
+  return MainPageDataController();
+});
+
+final selectedMoviePosterURLProvider = StateProvider<String?>((ref) {
+  final _movies = ref.watch(mainPageDataControllerProvider.state).movies!;
+  return _movies.length != 0 ? _movies[0].posterURL() : null;
+});
 
 class MainPage extends ConsumerWidget {
   late double _deviceHeight;
   late double _deviceWidth;
+
+  var _selectedMoviePosterURL;
+
+  late MainPageDataController _mainPageDataController;
+  late MainPageData _mainPageData;
 
   late TextEditingController _searchTextFieldController;
 
@@ -20,7 +41,14 @@ class MainPage extends ConsumerWidget {
     _deviceHeight = MediaQuery.of(context).size.height;
     _deviceWidth = MediaQuery.of(context).size.width;
 
+    _mainPageDataController = watch(mainPageDataControllerProvider);
+    _mainPageData = watch(mainPageDataControllerProvider.state);
+    _selectedMoviePosterURL = watch(selectedMoviePosterURLProvider);
+
     _searchTextFieldController = TextEditingController();
+
+    _searchTextFieldController.text = _mainPageData.searchText!;
+
     return _buildUI();
   }
 
@@ -43,24 +71,31 @@ class MainPage extends ConsumerWidget {
   }
 
   Widget _backgroundWidget() {
-    return Container(
-      height: _deviceHeight,
-      width: _deviceWidth,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10.0),
-        image: DecorationImage(
-          image: NetworkImage(
-              'https://img.artpal.com/179971/46-20-7-7-19-20-8m.jpg'),
-          fit: BoxFit.cover,
+    if (_selectedMoviePosterURL.state != null) {
+      return Container(
+        height: _deviceHeight,
+        width: _deviceWidth,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10.0),
+          image: DecorationImage(
+            image: NetworkImage(_selectedMoviePosterURL.state),
+            fit: BoxFit.cover,
+          ),
         ),
-      ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-        child: Container(
-          color: Colors.blue.withOpacity(0.001),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+          child: Container(
+            color: Colors.blue.withOpacity(0.001),
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      return Container(
+        height: _deviceHeight,
+        width: _deviceWidth,
+        color: Colors.black,
+      );
+    }
   }
 
   Widget _foregroundWidgets() {
@@ -110,7 +145,8 @@ class MainPage extends ConsumerWidget {
       height: _deviceHeight * 0.05,
       child: TextField(
         controller: _searchTextFieldController,
-        onSubmitted: (_input) {},
+        onSubmitted: (_input) =>
+            _mainPageDataController.updateTextSearch(_input),
         style: TextStyle(color: Colors.white),
         decoration: InputDecoration(
             focusedBorder: _border,
@@ -127,7 +163,7 @@ class MainPage extends ConsumerWidget {
   Widget _categorySelectionWidget() {
     return DropdownButton(
       dropdownColor: Colors.black38,
-      value: SearchCategory.popular,
+      value: _mainPageData.searchCategory,
       icon: Icon(
         Icons.menu,
         color: Colors.white24,
@@ -136,7 +172,9 @@ class MainPage extends ConsumerWidget {
         height: 1,
         color: Colors.white24,
       ),
-      onChanged: (_value) {},
+      onChanged: (dynamic _value) => _value.toString().isNotEmpty
+          ? _mainPageDataController.updateSearchCategory(_value)
+          : null,
       items: [
         DropdownMenuItem(
           child: Text(
@@ -164,33 +202,33 @@ class MainPage extends ConsumerWidget {
   }
 
   Widget _moviesListViewWidget() {
-    final List<Movie> _movies = [];
+    final List<Movie>? _movies = _mainPageData.movies;
 
-    for (var i = 0; i < 20; i++) {
-      _movies.add(
-        Movie(
-          name: "Mortal Kombat",
-          language: "EN",
-          isAdult: false,
-          description:
-              "MMA fighter Cole Young seeks out Earth's greatest champions in order to stand against the enemies of Outworld in a high stakes battle for the universe.",
-          posterPath: "/kb4s0ML0iVZlG6wAKbbs9NAm6X.jpg",
-          backdropPath: "/rAgsOIhqRS6tUthmHoqnqh9PIAE.jpg",
-          rating: 7.8,
-          releaseDate: "2021-08-12",
-        ),
-      );
-    }
-
-    if (_movies.length != 0) {
-      return ListView.builder(
+    if (_movies!.length != 0) {
+      // onNotification
+      return NotificationListener(
+        onNotification: (_onScrollNotofication) {
+          if (_onScrollNotofication is ScrollNotification) {
+            final before = _onScrollNotofication.metrics.extentBefore;
+            final max = _onScrollNotofication.metrics.maxScrollExtent;
+            if (before == max) {
+              _mainPageDataController.getMovies();
+              return true;
+            }
+            return false;
+          }
+          return false;
+        },
+        child: ListView.builder(
           itemCount: _movies.length,
           itemBuilder: (BuildContext _context, int _count) {
             return Padding(
               padding: EdgeInsets.symmetric(
                   vertical: _deviceHeight * 0.01, horizontal: 0),
               child: GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  _selectedMoviePosterURL.state = _movies[_count].posterURL();
+                },
                 child: MovieTile(
                   movie: _movies[_count],
                   height: _deviceHeight * 0.20,
@@ -198,7 +236,9 @@ class MainPage extends ConsumerWidget {
                 ),
               ),
             );
-          });
+          },
+        ),
+      );
     } else {
       return Center(
         child: CircularProgressIndicator(
